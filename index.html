@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Laivanupotus koordinaateilla</title>
+  <!-- Tailwind CSS (Play CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React and ReactDOM (development builds) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel for JSX transformation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    // Minimal replacements for shadcn/ui Card and Button
+    function Card({ children, className }) {
+      return (
+        <div className={`shadow rounded p-4 ${className || ""}`}>
+          {children}
+        </div>
+      );
+    }
+
+    function Button({ children, ...props }) {
+      return (
+        <button
+          {...props}
+          className={`bg-white text-[#253764] border border-[#253764] px-4 py-2 rounded focus:outline-none ${props.className || ""}`}
+        >
+          {children}
+        </button>
+      );
+    }
+
+    // Game configuration
+    const boardSize = 10;
+    const cellArcminutes = 5;
+    const cellDegrees = cellArcminutes / 60; // 0.08333...
+    const baseLat = 60 + 15 / 60; // 60°15' => 60.25
+    const baseLon = 21 + 55 / 60; // 21°55' => 21.91667
+
+    // Static island positions (row, col)
+    const islandPositions = [
+      { row: 2, col: 3 },
+      { row: 2, col: 4 },
+      { row: 3, col: 3 },
+      { row: 7, col: 7 },
+      { row: 7, col: 8 },
+      { row: 8, col: 7 },
+    ];
+    const islandSet = new Set(islandPositions.map(pos => `${pos.row}-${pos.col}`));
+
+    // Ship definitions (name and size)
+    const shipsInfo = [
+      { name: "Lentotukialus", size: 5 },
+      { name: "Taistelulaiva", size: 4 },
+      { name: "Risteilijä", size: 3 },
+      { name: "Risteilijä", size: 3 },
+      { name: "Hävittäjä", size: 2 },
+    ];
+
+    // Helper: format a decimal degree into “D°MM'”
+    function formatCoordinate(decimal) {
+      const degrees = Math.floor(decimal);
+      let minutes = Math.round((decimal - degrees) * 60);
+      if (minutes === 60) {
+        return `${degrees + 1}°00'`;
+      }
+      return `${degrees}°${minutes.toString().padStart(2, "0")}'`;
+    }
+
+    function BattleshipGame() {
+      const [gameStarted, setGameStarted] = React.useState(false);
+      const [ships, setShips] = React.useState([]);
+      const [shots, setShots] = React.useState({}); // keys: "row-col", value: "hit" or "miss"
+      const [selectedCell, setSelectedCell] = React.useState(null);
+
+      // Randomly place ships, avoiding islands and overlaps.
+      function generateShips() {
+        const placedShips = [];
+        const occupied = new Set();
+
+        const isOccupied = (row, col) =>
+          occupied.has(`${row}-${col}`) || islandSet.has(`${row}-${col}`);
+
+        for (let shipInfo of shipsInfo) {
+          let placed = false;
+          let attempts = 0;
+          while (!placed && attempts < 1000) {
+            attempts++;
+            const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
+            let startRow, startCol;
+            if (orientation === "horizontal") {
+              startRow = Math.floor(Math.random() * boardSize);
+              startCol = Math.floor(Math.random() * (boardSize - shipInfo.size + 1));
+            } else {
+              startRow = Math.floor(Math.random() * (boardSize - shipInfo.size + 1));
+              startCol = Math.floor(Math.random() * boardSize);
+            }
+
+            let positions = [];
+            let valid = true;
+            for (let i = 0; i < shipInfo.size; i++) {
+              const row = orientation === "horizontal" ? startRow : startRow + i;
+              const col = orientation === "horizontal" ? startCol + i : startCol;
+              if (row < 0 || row >= boardSize || col < 0 || col >= boardSize || isOccupied(row, col)) {
+                valid = false;
+                break;
+              }
+              positions.push({ row, col });
+            }
+
+            if (valid) {
+              positions.forEach(pos => occupied.add(`${pos.row}-${pos.col}`));
+              placedShips.push({
+                name: shipInfo.name,
+                size: shipInfo.size,
+                positions,
+                hits: 0,
+                destroyed: false,
+              });
+              placed = true;
+            }
+          }
+          if (!placed) {
+            console.error("Failed to place ship:", shipInfo.name);
+          }
+        }
+        return placedShips;
+      }
+
+      // Start or restart the game.
+      const newGame = () => {
+        setShips(generateShips());
+        setShots({});
+        setSelectedCell(null);
+        setGameStarted(true);
+      };
+
+      // Process a shot on the selected cell.
+      const shoot = () => {
+        if (!selectedCell) return;
+        const key = `${selectedCell.row}-${selectedCell.col}`;
+        if (shots[key]) return; // Already shot here.
+
+        let hit = false;
+        const updatedShips = ships.map(ship => {
+          const hitIndex = ship.positions.findIndex(
+            pos => pos.row === selectedCell.row && pos.col === selectedCell.col
+          );
+          if (hitIndex !== -1) {
+            hit = true;
+            const newHits = ship.hits + 1;
+            return {
+              ...ship,
+              hits: newHits,
+              destroyed: newHits === ship.size,
+            };
+          }
+          return ship;
+        });
+
+        setShips(updatedShips);
+        setShots(prev => ({ ...prev, [key]: hit ? "hit" : "miss" }));
+        setSelectedCell(null);
+      };
+
+      // Handle cell selection
+      const handleCellClick = (row, col) => {
+        const key = `${row}-${col}`;
+        if (shots[key] || islandSet.has(key)) return;
+        setSelectedCell({ row, col });
+      };
+
+      return (
+        <div className="min-h-screen">
+          {/* Header with gradient */}
+          <div className="bg-gradient-to-r from-white to-[#253764] p-4 text-center">
+            <h1 className="text-2xl font-bold text-[#253764]">Laivanupotus koordinaateilla</h1>
+          </div>
+
+          <Card className="m-4 p-4">
+            {/* Control Buttons */}
+            <div className="flex flex-wrap gap-4 mb-4 justify-center">
+              {!gameStarted && (
+                <Button onClick={newGame}>
+                  Aloita peli
+                </Button>
+              )}
+              {gameStarted && (
+                <>
+                  <Button onClick={shoot} disabled={!selectedCell}>
+                    Ammu valittuun ruutuun
+                  </Button>
+                  <Button onClick={newGame}>
+                    Uusi peli
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Game board */}
+            {gameStarted && (
+              <div className="grid grid-cols-10 gap-1">
+                {Array.from({ length: boardSize }).map((_, row) =>
+                  Array.from({ length: boardSize }).map((_, col) => {
+                    const key = `${row}-${col}`;
+                    const isSelected =
+                      selectedCell && selectedCell.row === row && selectedCell.col === col;
+                    const shotResult = shots[key];
+                    const isIsland = islandSet.has(key);
+
+                    let cellContent = null;
+                    if (isIsland) {
+                      cellContent = (
+                        <span className="text-xl" style={{ color: "rgb(212,195,143)" }}>
+                          ⬤
+                        </span>
+                      );
+                    }
+                    if (shotResult) {
+                      cellContent = shotResult === "hit" ? (
+                        <span className="text-xl">🎯</span>
+                      ) : (
+                        <span className="text-xl">💨</span>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={key}
+                        className={`w-full pt-[100%] relative cursor-pointer border border-gray-300 ${isSelected ? "ring-2 ring-blue-500" : ""}`}
+                        onClick={() => handleCellClick(row, col)}
+                      >
+                        <div
+                          className="absolute inset-0 flex items-center justify-center"
+                          style={{
+                            backgroundColor: isIsland ? "rgb(212,195,143)" : "rgb(190,229,255)",
+                          }}
+                        >
+                          {cellContent}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {/* Selected cell coordinates */}
+            {selectedCell && (
+              <div className="mt-4 text-[#253764] text-center">
+                Valittu ruutu:{" "}
+                {formatCoordinate(baseLat + selectedCell.row * cellDegrees)},{" "}
+                {formatCoordinate(baseLon + selectedCell.col * cellDegrees)}
+              </div>
+            )}
+
+            {/* Ship Status */}
+            {gameStarted && (
+              <div className="mt-4 text-[#253764]">
+                <h2 className="font-bold mb-2">Laivojen tila:</h2>
+                <ul className="space-y-1">
+                  {ships.map((ship, index) => (
+                    <li key={index}>
+                      {ship.name}:{" "}
+                      {ship.destroyed
+                        ? "Tuhottu! 💥"
+                        : `Osumat: ${ship.hits}/${ship.size}`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
+        </div>
+      );
+    }
+
+    // Render the game
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<BattleshipGame />);
+  </script>
+</body>
+</html>
