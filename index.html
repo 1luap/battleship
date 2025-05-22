@@ -58,17 +58,35 @@
       const baseLat = 60 + 15 / 60;
       const baseLon = 21 + 55 / 60;
       
-      const islandPositions = [
-        { row: 2, col: 3 },
-        { row: 2, col: 4 },
-        { row: 3, col: 3 },
-        { row: 7, col: 7 },
-        { row: 7, col: 8 },
-        { row: 8, col: 7 },
-      ];
-      const islandSet = new Set(
-        islandPositions.map((pos) => pos.row + "-" + pos.col)
-      );
+      // Function to generate island positions
+      function generateIslandPositions(boardSize, numIslands) {
+        const islandPositions = [];
+        const occupiedPositions = new Set(); // To ensure uniqueness
+
+        // Islands cannot be on the border, so valid range is 1 to boardSize - 2
+        const minPos = 1;
+        const maxPos = boardSize - 2;
+        const availableSpots = (maxPos - minPos + 1) * (maxPos - minPos + 1);
+
+        if (numIslands > availableSpots) {
+          console.warn(`Cannot place ${numIslands} islands on a ${boardSize}x${boardSize} board without border placement. Maximum is ${availableSpots}.`);
+          // Optionally, reduce numIslands or throw an error
+          numIslands = availableSpots;
+        }
+
+        while (islandPositions.length < numIslands) {
+          const row = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+          const col = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+          const positionKey = `${row}-${col}`;
+
+          if (!occupiedPositions.has(positionKey)) {
+            occupiedPositions.add(positionKey);
+            const direction = Math.random() < 0.5 ? "horizontal" : "vertical";
+            islandPositions.push({ row, col, direction });
+          }
+        }
+        return islandPositions;
+      }
       
       const shipsInfo = [
         { name: "Lentotukialus", size: 5 },
@@ -88,6 +106,8 @@
       }
       
       function BattleshipGame() {
+        const numIslands = 6; // Hardcoded number of islands
+
         const [gameStarted, setGameStarted] = React.useState(false);
         const [ships, setShips] = React.useState([]);
         const [shots, setShots] = React.useState({});
@@ -95,6 +115,9 @@
         const [moveCount, setMoveCount] = React.useState(0);
         const [gameOver, setGameOver] = React.useState(false);
         const [soundEnabled, setSoundEnabled] = React.useState(true);
+        const [currentIslandSet, setCurrentIslandSet] = React.useState(new Set());
+        // const [currentIslandPositions, setCurrentIslandPositions] = React.useState([]); // If directions needed for rendering later
+
         const [bestScore, setBestScore] = React.useState(() => {
           const stored = localStorage.getItem("bestScore");
           return stored ? parseInt(stored, 10) : null;
@@ -120,11 +143,12 @@
         }
         
         // Satunnainen laivojen sijoitus (saaret ohitetaan)
-        function generateShips() {
+        function generateShips(activeIslandSet) { // Parameter for current island set
           const placedShips = [];
           const occupied = new Set();
+          // Use the passed activeIslandSet for collision detection
           const isOccupied = (row, col) =>
-            occupied.has(row + "-" + col) || islandSet.has(row + "-" + col);
+            occupied.has(row + "-" + col) || activeIslandSet.has(row + "-" + col);
         
           for (let shipInfo of shipsInfo) {
             let placed = false;
@@ -181,7 +205,18 @@
         }
         
         const newGame = () => {
-          setShips(generateShips());
+          // 1. Generate new island positions and set
+          const newIslandPositions = generateIslandPositions(boardSize, numIslands);
+          const newIslandSet = new Set(
+            newIslandPositions.map((pos) => pos.row + "-" + pos.col)
+          );
+          setCurrentIslandSet(newIslandSet);
+          // setCurrentIslandPositions(newIslandPositions); // If needed later
+
+          // 2. Generate ships using the new island set
+          setShips(generateShips(newIslandSet)); // Pass newIslandSet directly
+
+          // 3. Reset other game state
           setShots({});
           setSelectedCell(null);
           setMoveCount(0);
@@ -244,7 +279,7 @@
         const handleCellClick = (row, col) => {
           if (gameOver) return;
           const key = row + "-" + col;
-          if (shots[key] || islandSet.has(key)) return;
+          if (shots[key] || currentIslandSet.has(key)) return; // Use currentIslandSet state
           setSelectedCell({ row, col });
         };
         
@@ -322,7 +357,7 @@
                           selectedCell.row === row &&
                           selectedCell.col === col;
                         const shotResult = shots[key];
-                        const isIsland = islandSet.has(row + "-" + col);
+                        const isIsland = currentIslandSet.has(row + "-" + col); // Use currentIslandSet state
         
                         let cellContent = null;
                         if (isIsland) {
