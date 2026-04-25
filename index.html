@@ -4,90 +4,117 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Laivanupotus koordinaateilla</title>
-    <!-- Tailwind CSS (via Play CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React ja ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel JSX:n kääntämistä varten -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
       @keyframes pop {
-        0% {
-          transform: scale(0.5);
-          opacity: 0;
-        }
-        100% {
-          transform: scale(1);
-          opacity: 1;
-        }
+        0%   { transform: scale(0.3); opacity: 0; }
+        65%  { transform: scale(1.18); opacity: 1; }
+        100% { transform: scale(1);   opacity: 1; }
       }
       .animate-pop {
-        animation: pop 0.3s ease-out;
+        animation: pop 0.35s ease-out forwards;
+      }
+      body {
+        background: linear-gradient(160deg, #ddeef8 0%, #c0dcee 100%);
+        min-height: 100vh;
+        margin: 0;
+      }
+      /* Prevent double-tap zoom and tap highlight on the grid */
+      .game-grid-container {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
       }
     </style>
   </head>
-  <body class="bg-gray-100">
+  <body>
     <div id="root"></div>
     <script type="text/babel">
-      // Minimaliset komponentit Card ja Button
+
       function Card({ children, className }) {
         return (
-          <div className={`shadow rounded p-4 ${className || ""}`}>
+          <div className={`shadow-xl rounded-2xl bg-white ${className || ""}`}>
             {children}
           </div>
         );
       }
+
       function Button({ children, ...props }) {
         return (
           <button
             {...props}
-            className={`bg-white text-[#253764] border border-[#253764] px-4 py-2 rounded focus:outline-none ${
-              props.className || ""
-            }`}
+            className={`bg-white text-[#253764] border-2 border-[#253764] px-4 py-2 rounded-xl font-semibold active:bg-[#253764] active:text-white transition-colors ${props.className || ""}`}
           >
             {children}
           </button>
         );
       }
-      
-      // Pelin asetukset
+
       const boardSize = 10;
       const cellArcminutes = 5;
       const cellDegrees = cellArcminutes / 60;
       const baseLat = 60 + 15 / 60;
       const baseLon = 21 + 55 / 60;
-      
-      // Function to generate island positions
-      function generateIslandPositions(boardSize, numIslands) {
-        const islandPositions = [];
-        const occupiedPositions = new Set(); // To ensure uniqueness
 
-        // Islands cannot be on the border, so valid range is 1 to boardSize - 2
+      // Clustered island placement: seed one island then grow the cluster
+      // with 65% probability, falling back to random scatter for the rest.
+      function generateIslandPositions(boardSize, numIslands) {
         const minPos = 1;
         const maxPos = boardSize - 2;
-        const availableSpots = (maxPos - minPos + 1) * (maxPos - minPos + 1);
+        const occupied = new Set();
+        const positions = [];
 
-        if (numIslands > availableSpots) {
-          console.warn(`Cannot place ${numIslands} islands on a ${boardSize}x${boardSize} board without border placement. Maximum is ${availableSpots}.`);
-          // Optionally, reduce numIslands or throw an error
-          numIslands = availableSpots;
-        }
+        const isValid = (r, c) =>
+          r >= minPos && r <= maxPos &&
+          c >= minPos && c <= maxPos &&
+          !occupied.has(`${r}-${c}`);
 
-        while (islandPositions.length < numIslands) {
-          const row = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
-          const col = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
-          const positionKey = `${row}-${col}`;
+        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
-          if (!occupiedPositions.has(positionKey)) {
-            occupiedPositions.add(positionKey);
-            const direction = Math.random() < 0.5 ? "horizontal" : "vertical";
-            islandPositions.push({ row, col, direction });
+        // Seed island
+        const r0 = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+        const c0 = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+        occupied.add(`${r0}-${c0}`);
+        positions.push({ row: r0, col: c0 });
+
+        while (positions.length < numIslands) {
+          let placed = false;
+
+          // 65% chance: grow adjacent to an existing island
+          if (Math.random() < 0.65) {
+            const base = positions[Math.floor(Math.random() * positions.length)];
+            const neighbors = dirs
+              .map(([dr, dc]) => [base.row + dr, base.col + dc])
+              .filter(([r, c]) => isValid(r, c));
+            if (neighbors.length > 0) {
+              const [r, c] = neighbors[Math.floor(Math.random() * neighbors.length)];
+              occupied.add(`${r}-${c}`);
+              positions.push({ row: r, col: c });
+              placed = true;
+            }
+          }
+
+          // Fallback: random valid position
+          if (!placed) {
+            for (let attempt = 0; attempt < 200 && !placed; attempt++) {
+              const r = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+              const c = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+              if (isValid(r, c)) {
+                occupied.add(`${r}-${c}`);
+                positions.push({ row: r, col: c });
+                placed = true;
+              }
+            }
           }
         }
-        return islandPositions;
+
+        return positions;
       }
-      
+
       const shipsInfo = [
         { name: "Lentotukialus", size: 5 },
         { name: "Taistelulaiva", size: 4 },
@@ -95,18 +122,78 @@
         { name: "Risteilijä", size: 3 },
         { name: "Hävittäjä", size: 2 },
       ];
-      
+
       function formatCoordinate(decimal) {
         const degrees = Math.floor(decimal);
         let minutes = Math.round((decimal - degrees) * 60);
-        if (minutes === 60) {
-          return (degrees + 1) + "°00'";
-        }
+        if (minutes === 60) return (degrees + 1) + "°00'";
         return degrees + "°" + minutes.toString().padStart(2, "0") + "'";
       }
-      
+
+      function GameCell({ isIsland, isSelected, shotResult, onClick }) {
+        let inner = null;
+
+        if (isIsland) {
+          inner = (
+            <div style={{
+              width: '66%',
+              height: '66%',
+              background: 'radial-gradient(ellipse at 38% 32%, #a8d96a, #4e8c22 55%, #2d5e10)',
+              borderRadius: '48% 52% 58% 42% / 44% 56% 44% 56%',
+              boxShadow: '2px 3px 6px rgba(0,0,0,0.38), inset 1px 1px 3px rgba(255,255,255,0.22)',
+              flexShrink: 0,
+            }} />
+          );
+        }
+
+        if (shotResult === "hit") {
+          inner = (
+            <div className="animate-pop" style={{
+              width: '76%',
+              height: '76%',
+              background: 'radial-gradient(circle at 35% 30%, #ffe566, #ff7a00 45%, #c41200)',
+              borderRadius: '50%',
+              boxShadow: '0 0 10px 3px rgba(255,120,0,0.6)',
+            }} />
+          );
+        }
+
+        if (shotResult === "miss") {
+          inner = (
+            <div className="animate-pop" style={{
+              width: '58%',
+              height: '58%',
+              border: '2.5px solid rgba(255,255,255,0.88)',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.65), rgba(140,205,255,0.2))',
+              boxShadow: '0 0 5px rgba(255,255,255,0.45)',
+            }} />
+          );
+        }
+
+        return (
+          <div
+            className="w-full pt-[100%] relative cursor-pointer"
+            onClick={onClick}
+          >
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{
+                background: isSelected
+                  ? 'linear-gradient(145deg, #ffe47a 0%, #ffd030 100%)'
+                  : 'linear-gradient(145deg, #b3ddf5 0%, #78bfe0 100%)',
+                outline: isSelected ? '2px solid #f5a800' : 'none',
+                outlineOffset: '-2px',
+              }}
+            >
+              {inner}
+            </div>
+          </div>
+        );
+      }
+
       function BattleshipGame() {
-        const numIslands = 6; // Hardcoded number of islands
+        const numIslands = 6;
 
         const [gameStarted, setGameStarted] = React.useState(false);
         const [ships, setShips] = React.useState([]);
@@ -116,21 +203,19 @@
         const [gameOver, setGameOver] = React.useState(false);
         const [soundEnabled, setSoundEnabled] = React.useState(true);
         const [currentIslandSet, setCurrentIslandSet] = React.useState(new Set());
-        // const [currentIslandPositions, setCurrentIslandPositions] = React.useState([]); // If directions needed for rendering later
 
         const [bestScore, setBestScore] = React.useState(() => {
           const stored = localStorage.getItem("bestScore");
           return stored ? parseInt(stored, 10) : null;
         });
-        
-        // AudioContext ääniefektejä varten
+
         const audioCtxRef = React.useRef(null);
         React.useEffect(() => {
           if (!audioCtxRef.current) {
             audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
           }
         }, []);
-        
+
         function playSound(frequency, duration) {
           if (!soundEnabled) return;
           const audioCtx = audioCtxRef.current;
@@ -141,15 +226,13 @@
           oscillator.start();
           oscillator.stop(audioCtx.currentTime + duration);
         }
-        
-        // Satunnainen laivojen sijoitus (saaret ohitetaan)
-        function generateShips(activeIslandSet) { // Parameter for current island set
+
+        function generateShips(activeIslandSet) {
           const placedShips = [];
           const occupied = new Set();
-          // Use the passed activeIslandSet for collision detection
           const isOccupied = (row, col) =>
-            occupied.has(row + "-" + col) || activeIslandSet.has(row + "-" + col);
-        
+            occupied.has(`${row}-${col}`) || activeIslandSet.has(`${row}-${col}`);
+
           for (let shipInfo of shipsInfo) {
             let placed = false;
             let attempts = 0;
@@ -164,267 +247,227 @@
                 startRow = Math.floor(Math.random() * (boardSize - shipInfo.size + 1));
                 startCol = Math.floor(Math.random() * boardSize);
               }
-        
+
               let positions = [];
               let valid = true;
               for (let i = 0; i < shipInfo.size; i++) {
                 const row = orientation === "horizontal" ? startRow : startRow + i;
                 const col = orientation === "horizontal" ? startCol + i : startCol;
-                if (
-                  row < 0 ||
-                  row >= boardSize ||
-                  col < 0 ||
-                  col >= boardSize ||
-                  isOccupied(row, col)
-                ) {
+                if (row < 0 || row >= boardSize || col < 0 || col >= boardSize || isOccupied(row, col)) {
                   valid = false;
                   break;
                 }
                 positions.push({ row, col });
               }
-        
+
               if (valid) {
-                positions.forEach((pos) =>
-                  occupied.add(pos.row + "-" + pos.col)
-                );
-                placedShips.push({
-                  name: shipInfo.name,
-                  size: shipInfo.size,
-                  positions,
-                  hits: 0,
-                  destroyed: false,
-                });
+                positions.forEach((pos) => occupied.add(`${pos.row}-${pos.col}`));
+                placedShips.push({ name: shipInfo.name, size: shipInfo.size, positions, hits: 0, destroyed: false });
                 placed = true;
               }
             }
-            if (!placed) {
-              console.error("Failed to place ship:", shipInfo.name);
-            }
+            if (!placed) console.error("Failed to place ship:", shipInfo.name);
           }
           return placedShips;
         }
-        
+
         const newGame = () => {
-          // 1. Generate new island positions and set
           const newIslandPositions = generateIslandPositions(boardSize, numIslands);
-          const newIslandSet = new Set(
-            newIslandPositions.map((pos) => pos.row + "-" + pos.col)
-          );
+          const newIslandSet = new Set(newIslandPositions.map((pos) => `${pos.row}-${pos.col}`));
           setCurrentIslandSet(newIslandSet);
-          // setCurrentIslandPositions(newIslandPositions); // If needed later
-
-          // 2. Generate ships using the new island set
-          setShips(generateShips(newIslandSet)); // Pass newIslandSet directly
-
-          // 3. Reset other game state
+          setShips(generateShips(newIslandSet));
           setShots({});
           setSelectedCell(null);
           setMoveCount(0);
           setGameOver(false);
           setGameStarted(true);
         };
-        
-        // Ammu ruutua tuplaklikkaamalla
+
         const shootAtCell = (row, col) => {
           if (gameOver) return;
-          const key = row + "-" + col;
+          const key = `${row}-${col}`;
           if (shots[key]) return;
-          
+
           let hit = false;
           const updatedShips = ships.map((ship) => {
-            const hitIndex = ship.positions.findIndex(
-              (pos) => pos.row === row && pos.col === col
-            );
+            const hitIndex = ship.positions.findIndex((pos) => pos.row === row && pos.col === col);
             if (hitIndex !== -1) {
               hit = true;
               const newHits = ship.hits + 1;
-              return {
-                ...ship,
-                hits: newHits,
-                destroyed: newHits === ship.size,
-              };
+              return { ...ship, hits: newHits, destroyed: newHits === ship.size };
             }
             return ship;
           });
-        
+
           const newShots = { ...shots, [key]: hit ? "hit" : "miss" };
           setShips(updatedShips);
           setShots(newShots);
           setSelectedCell(null);
           const newMoveCount = moveCount + 1;
           setMoveCount(newMoveCount);
-        
-          if (hit) {
-            playSound(600, 0.1);
-          } else {
-            playSound(400, 0.1);
-          }
-        
+
+          if (hit) playSound(600, 0.1);
+          else playSound(400, 0.1);
+
           if (updatedShips.every((ship) => ship.destroyed)) {
             setGameOver(true);
-            const finalMoves = newMoveCount;
             const storedBest = localStorage.getItem("bestScore");
             const storedBestNum = storedBest ? parseInt(storedBest, 10) : Infinity;
-            if (finalMoves < storedBestNum) {
-              localStorage.setItem("bestScore", finalMoves);
-              setBestScore(finalMoves);
-            } else if (!storedBest) {
-              localStorage.setItem("bestScore", finalMoves);
-              setBestScore(finalMoves);
+            if (!storedBest || newMoveCount < storedBestNum) {
+              localStorage.setItem("bestScore", newMoveCount);
+              setBestScore(newMoveCount);
             }
           }
         };
-        
-        // Single-click: valitsee ruudun
+
+        // Mobile-friendly: first tap selects, second tap on same cell shoots
         const handleCellClick = (row, col) => {
           if (gameOver) return;
-          const key = row + "-" + col;
-          if (shots[key] || currentIslandSet.has(key)) return; // Use currentIslandSet state
-          setSelectedCell({ row, col });
+          const key = `${row}-${col}`;
+          if (shots[key] || currentIslandSet.has(key)) return;
+
+          if (selectedCell && selectedCell.row === row && selectedCell.col === col) {
+            shootAtCell(row, col);
+          } else {
+            setSelectedCell({ row, col });
+          }
         };
-        
-        const toggleSound = () => {
-          setSoundEnabled((prev) => !prev);
-        };
-        
+
+        const toggleSound = () => setSoundEnabled((prev) => !prev);
+
         return (
-          <div className="min-h-screen relative">
-            {/* Peli-ohi -modal */}
+          <div className="min-h-screen relative pb-4">
+
+            {/* Game over modal */}
             {gameOver && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded p-6 max-w-md text-center">
-                  <h2 className="text-2xl font-bold mb-4 text-[#253764]">Peli ohi!</h2>
-                  <p className="mb-4 text-[#253764]">
-                    Siirtoja: {moveCount}
-                    {bestScore !== null && (
-                      <>
-                        <br />
-                        Paras tulos: {bestScore} siirtoa
-                      </>
-                    )}
-                  </p>
-                  <Button onClick={newGame}>Uusi peli</Button>
+              <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl">
+                  <div className="text-5xl mb-3">🎉</div>
+                  <h2 className="text-2xl font-bold mb-2 text-[#253764]">Peli ohi!</h2>
+                  <p className="text-[#253764] mb-1">Siirtoja: <strong>{moveCount}</strong></p>
+                  {bestScore !== null && (
+                    <p className="text-[#253764] mb-4">Paras tulos: <strong>{bestScore}</strong> siirtoa</p>
+                  )}
+                  <Button onClick={newGame} className="w-full">Uusi peli</Button>
                 </div>
               </div>
             )}
-        
-            {/* Yläosa */}
-            <div className="bg-gradient-to-r from-white to-[#253764] p-4 text-center">
-              <h1 className="text-2xl font-bold text-[#253764]">Laivanupotus koordinaateilla</h1>
+
+            {/* Header */}
+            <div
+              className="p-3 sm:p-4 text-center"
+              style={{ background: 'linear-gradient(135deg, #1a3a5c 0%, #253764 70%, #1f4d8a)' }}
+            >
+              <h1 className="text-lg sm:text-2xl font-bold text-white">
+                ⚓ Laivanupotus koordinaateilla
+              </h1>
               {gameStarted && (
-                <p className="mt-2 text-[#253764] text-sm">
-                  Valitse ruutu klikkaamalla ja ammu tuplaklikkaamalla.
+                <p className="mt-1 text-blue-200 text-xs">
+                  Valitse ruutu — klikkaa uudelleen ammuttaaksesi
                 </p>
               )}
             </div>
-        
-            <Card className="m-4 p-4">
-              {/* Ohjeet näytetään suoraan, kun peliä ei ole vielä aloitettu */}
+
+            <Card className="m-2 sm:m-4 p-2 sm:p-4">
+
+              {/* Start screen */}
               {!gameStarted && (
-                <div className="mb-4 text-center text-[#253764]">
-                  <p className="mb-4">
-                    Tervetuloa Laivanupotukseen koordinaateilla! Klikkaa "Aloita peli" aloittaaksesi.
-                    Voit myös tutustua koordinaatteihin esimerkiksi{" "}
+                <div className="py-8 px-4 text-center text-[#253764]">
+                  <div className="text-5xl mb-4">⚓</div>
+                  <p className="mb-4 text-sm">
+                    Upota laivat löytämällä niiden koordinaatit! Tutustu koordinaatteihin{" "}
                     <a
                       href="https://fi.scoutwiki.org/Koordinaatit"
                       target="_blank"
-                      className="underline text-[#253764]"
+                      className="underline"
                     >
                       PartioWikissä
                     </a>.
                   </p>
-                  <div className="flex justify-center">
-                    <Button onClick={newGame}>Aloita peli</Button>
-                  </div>
+                  <Button onClick={newGame}>Aloita peli</Button>
                 </div>
               )}
-        
+
               {gameStarted && (
                 <>
-                  <div className="mb-4 text-center text-[#253764]">
-                    <span className="font-bold">Siirrot: {moveCount}</span>
+                  {/* Score bar */}
+                  <div className="mb-2 flex justify-between items-center text-[#253764] px-1">
+                    <span className="font-bold text-sm">Siirrot: {moveCount}</span>
                     {bestScore !== null && (
-                      <span className="ml-4">Paras tulos: {bestScore} siirtoa</span>
+                      <span className="text-sm text-gray-500">Paras: {bestScore} siirtoa</span>
                     )}
                   </div>
-        
-                  <div className="grid grid-cols-10 gap-1">
-                    {Array.from({ length: boardSize }).map((_, row) =>
-                      Array.from({ length: boardSize }).map((_, col) => {
-                        const key = row + "-" + col;
-                        const isSelected =
-                          selectedCell &&
-                          selectedCell.row === row &&
-                          selectedCell.col === col;
-                        const shotResult = shots[key];
-                        const isIsland = currentIslandSet.has(row + "-" + col); // Use currentIslandSet state
-        
-                        let cellContent = null;
-                        if (isIsland) {
-                          cellContent = (
-                            <span className="text-xl animate-pop" style={{ color: "rgb(212,195,143)" }}>
-                              ⬤
-                            </span>
+
+                  {/* Game grid */}
+                  <div
+                    className="game-grid-container"
+                    style={{
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: '2px solid #1c3460',
+                      boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.18)',
+                    }}
+                  >
+                    <div
+                      className="grid grid-cols-10"
+                      style={{ gap: '1px', background: '#1c3460' }}
+                    >
+                      {Array.from({ length: boardSize }).map((_, row) =>
+                        Array.from({ length: boardSize }).map((_, col) => {
+                          const key = `${row}-${col}`;
+                          return (
+                            <GameCell
+                              key={key}
+                              isIsland={currentIslandSet.has(key)}
+                              isSelected={!!(selectedCell && selectedCell.row === row && selectedCell.col === col)}
+                              shotResult={shots[key]}
+                              onClick={() => handleCellClick(row, col)}
+                            />
                           );
-                        }
-                        if (shotResult) {
-                          cellContent =
-                            shotResult === "hit" ? (
-                              <span className="text-xl animate-pop">🎯</span>
-                            ) : (
-                              <span className="text-xl animate-pop">💨</span>
-                            );
-                        }
-        
-                        return (
-                          <div
-                            key={key}
-                            className={`w-full pt-[100%] relative cursor-pointer border border-gray-300 ${
-                              isSelected ? "ring-2 ring-blue-500" : ""
-                            }`}
-                            onClick={() => handleCellClick(row, col)}
-                            onDoubleClick={() => shootAtCell(row, col)}
-                          >
-                            <div
-                              className="absolute inset-0 flex items-center justify-center"
-                              style={{
-                                backgroundColor: isIsland ? "rgb(212,195,143)" : "rgb(190,229,255)",
-                              }}
-                            >
-                              {cellContent}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                        })
+                      )}
+                    </div>
                   </div>
-        
-                  <div className="mt-4 text-[#253764] text-center min-h-[24px]">
+
+                  {/* Coordinate display */}
+                  <div className="mt-2 text-center min-h-[40px] flex flex-col items-center justify-center">
                     {selectedCell ? (
                       <>
-                        Valittu ruutu:{" "}
-                        {formatCoordinate(baseLat + selectedCell.row * cellDegrees)},{" "}
-                        {formatCoordinate(baseLon + selectedCell.col * cellDegrees)}
+                        <span className="text-[#253764] font-mono text-sm font-semibold">
+                          📍 {formatCoordinate(baseLat + selectedCell.row * cellDegrees)},{" "}
+                          {formatCoordinate(baseLon + selectedCell.col * cellDegrees)}
+                        </span>
+                        <span className="text-xs text-blue-500 mt-0.5">klikkaa uudelleen ammuttaaksesi</span>
                       </>
                     ) : (
-                      <span>&nbsp;</span>
+                      <span className="text-gray-400 text-xs">Valitse ruutu kartalta</span>
                     )}
                   </div>
-        
-                  <div className="mt-4 flex justify-between items-start text-[#253764]">
+
+                  {/* Ship status + controls */}
+                  <div className="mt-2 flex justify-between items-start text-[#253764]">
                     <div>
-                      <h2 className="font-bold mb-2">Laivojen tila:</h2>
-                      <ul className="space-y-1">
+                      <h2 className="font-bold text-xs uppercase tracking-wide mb-1 text-gray-400">
+                        Laivojen tila
+                      </h2>
+                      <ul className="space-y-0.5">
                         {ships.map((ship, index) => (
-                          <li key={index}>
-                            {ship.name}: {ship.destroyed ? "Tuhottu! 💥" : "Osumat: " + ship.hits + "/" + ship.size}
+                          <li
+                            key={index}
+                            className={`text-xs flex items-center gap-1 ${ship.destroyed ? "text-gray-400" : ""}`}
+                          >
+                            <span>{ship.destroyed ? "💥" : "🚢"}</span>
+                            <span className={ship.destroyed ? "line-through" : ""}>{ship.name}</span>
+                            <span className="text-gray-400 ml-1">
+                              {ship.destroyed ? "Tuhottu" : `${ship.hits}/${ship.size}`}
+                            </span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <Button onClick={newGame}>🔄</Button>
-                      <Button onClick={toggleSound} className="mt-2">
+                    <div className="flex flex-col gap-2 ml-2 flex-shrink-0">
+                      <Button onClick={newGame} className="text-base px-3 py-2" title="Uusi peli">🔄</Button>
+                      <Button onClick={toggleSound} className="text-base px-3 py-2" title="Äänet">
                         {soundEnabled ? "🔊" : "🔈"}
                       </Button>
                     </div>
@@ -435,7 +478,7 @@
           </div>
         );
       }
-      
+
       const rootElement = document.getElementById("root");
       const root = ReactDOM.createRoot(rootElement);
       root.render(<BattleshipGame />);
