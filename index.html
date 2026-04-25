@@ -1,18 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Laivanupotus koordinaateilla</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
       @keyframes pop {
-        0%   { transform: scale(0.3); opacity: 0; }
-        65%  { transform: scale(1.18); opacity: 1; }
-        100% { transform: scale(1);   opacity: 1; }
+        0% {
+          transform: scale(0.3);
+          opacity: 0;
+        }
+        65% {
+          transform: scale(1.18);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
       }
       .animate-pop {
         animation: pop 0.35s ease-out forwards;
@@ -49,7 +64,6 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-
       function Card({ children, className }) {
         return (
           <div className={`shadow-xl rounded-2xl bg-white ${className || ""}`}>
@@ -82,11 +96,18 @@
         const positions = [];
 
         const isValid = (r, c) =>
-          r >= minPos && r <= maxPos &&
-          c >= minPos && c <= maxPos &&
+          r >= minPos &&
+          r <= maxPos &&
+          c >= minPos &&
+          c <= maxPos &&
           !occupied.has(`${r}-${c}`);
 
-        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        const dirs = [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ];
 
         const r0 = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
         const c0 = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
@@ -96,12 +117,14 @@
         while (positions.length < numIslands) {
           let placed = false;
           if (Math.random() < 0.65) {
-            const base = positions[Math.floor(Math.random() * positions.length)];
+            const base =
+              positions[Math.floor(Math.random() * positions.length)];
             const neighbors = dirs
               .map(([dr, dc]) => [base.row + dr, base.col + dc])
               .filter(([r, c]) => isValid(r, c));
             if (neighbors.length > 0) {
-              const [r, c] = neighbors[Math.floor(Math.random() * neighbors.length)];
+              const [r, c] =
+                neighbors[Math.floor(Math.random() * neighbors.length)];
               occupied.add(`${r}-${c}`);
               positions.push({ row: r, col: c });
               placed = true;
@@ -109,8 +132,10 @@
           }
           if (!placed) {
             for (let attempt = 0; attempt < 200 && !placed; attempt++) {
-              const r = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
-              const c = Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+              const r =
+                Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
+              const c =
+                Math.floor(Math.random() * (maxPos - minPos + 1)) + minPos;
               if (isValid(r, c)) {
                 occupied.add(`${r}-${c}`);
                 positions.push({ row: r, col: c });
@@ -133,33 +158,47 @@
       function formatCoordinate(decimal) {
         const degrees = Math.floor(decimal);
         let minutes = Math.round((decimal - degrees) * 60);
-        if (minutes === 60) return (degrees + 1) + "°00'";
+        if (minutes === 60) return degrees + 1 + "°00'";
         return degrees + "°" + minutes.toString().padStart(2, "0") + "'";
       }
 
-      function GameCell({ isIsland, isSelected, shotResult, hasShip, previewStatus, onClick, onMouseEnter }) {
+      function GameCell({
+        isIsland,
+        isSelected,
+        shotResult,
+        hasShip,
+        previewStatus,
+        onClick,
+        onMouseEnter,
+      }) {
         let inner = null;
 
         if (isIsland) {
           inner = (
-            <div style={{
-              width: '66%',
-              height: '66%',
-              background: 'radial-gradient(ellipse at 38% 32%, #a8d96a, #4e8c22 55%, #2d5e10)',
-              borderRadius: '48% 52% 58% 42% / 44% 56% 44% 56%',
-              boxShadow: '2px 3px 6px rgba(0,0,0,0.38), inset 1px 1px 3px rgba(255,255,255,0.22)',
-              flexShrink: 0,
-            }} />
+            <div
+              style={{
+                width: "66%",
+                height: "66%",
+                background:
+                  "radial-gradient(ellipse at 38% 32%, #a8d96a, #4e8c22 55%, #2d5e10)",
+                borderRadius: "48% 52% 58% 42% / 44% 56% 44% 56%",
+                boxShadow:
+                  "2px 3px 6px rgba(0,0,0,0.38), inset 1px 1px 3px rgba(255,255,255,0.22)",
+                flexShrink: 0,
+              }}
+            />
           );
         } else if (hasShip) {
           inner = (
-            <div style={{
-              width: '80%',
-              height: '80%',
-              background: 'linear-gradient(145deg, #6b7280, #374151)',
-              borderRadius: '10%',
-              boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.2)',
-            }} />
+            <div
+              style={{
+                width: "80%",
+                height: "80%",
+                background: "linear-gradient(145deg, #6b7280, #374151)",
+                borderRadius: "10%",
+                boxShadow: "inset 0 1px 3px rgba(255,255,255,0.2)",
+              }}
+            />
           );
         }
 
@@ -168,38 +207,46 @@
         if (shotResult === "hit") {
           overlay = (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="animate-pop" style={{
-                width: '76%',
-                height: '76%',
-                background: 'radial-gradient(circle at 35% 30%, #ffe566, #ff7a00 45%, #c41200)',
-                borderRadius: '50%',
-                boxShadow: '0 0 10px 3px rgba(255,120,0,0.6)',
-              }} />
+              <div
+                className="animate-pop"
+                style={{
+                  width: "76%",
+                  height: "76%",
+                  background:
+                    "radial-gradient(circle at 35% 30%, #ffe566, #ff7a00 45%, #c41200)",
+                  borderRadius: "50%",
+                  boxShadow: "0 0 10px 3px rgba(255,120,0,0.6)",
+                }}
+              />
             </div>
           );
         } else if (shotResult === "miss") {
           overlay = (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="animate-pop" style={{
-                width: '58%',
-                height: '58%',
-                border: '2.5px solid rgba(255,255,255,0.88)',
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(255,255,255,0.65), rgba(140,205,255,0.2))',
-                boxShadow: '0 0 5px rgba(255,255,255,0.45)',
-              }} />
+              <div
+                className="animate-pop"
+                style={{
+                  width: "58%",
+                  height: "58%",
+                  border: "2.5px solid rgba(255,255,255,0.88)",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle, rgba(255,255,255,0.65), rgba(140,205,255,0.2))",
+                  boxShadow: "0 0 5px rgba(255,255,255,0.45)",
+                }}
+              />
             </div>
           );
         }
 
         let bg = isSelected
-          ? 'linear-gradient(145deg, #ffe47a 0%, #ffd030 100%)'
-          : 'linear-gradient(145deg, #b3ddf5 0%, #78bfe0 100%)';
+          ? "linear-gradient(145deg, #ffe47a 0%, #ffd030 100%)"
+          : "linear-gradient(145deg, #b3ddf5 0%, #78bfe0 100%)";
 
         if (previewStatus === "valid") {
-          bg = '#86efac'; // green-300
+          bg = "#86efac"; // green-300
         } else if (previewStatus === "invalid") {
-          bg = '#fca5a5'; // red-300
+          bg = "#fca5a5"; // red-300
         }
 
         return (
@@ -212,8 +259,8 @@
               className="absolute inset-0 flex items-center justify-center"
               style={{
                 background: bg,
-                outline: isSelected ? '2px solid #f5a800' : 'none',
-                outlineOffset: '-2px',
+                outline: isSelected ? "2px solid #f5a800" : "none",
+                outlineOffset: "-2px",
               }}
             >
               {inner}
@@ -226,8 +273,8 @@
       function BattleshipGame() {
         const numIslands = 6;
 
-        const [phase, setPhase] = React.useState('start'); // 'start', 'placement', 'battle', 'gameOver'
-        const [turn, setTurn] = React.useState('player'); // 'player', 'computer'
+        const [phase, setPhase] = React.useState("start"); // 'start', 'placement', 'battle', 'gameOver'
+        const [turn, setTurn] = React.useState("player"); // 'player', 'computer'
 
         const [playerShips, setPlayerShips] = React.useState([]);
         const [computerShips, setComputerShips] = React.useState([]);
@@ -241,7 +288,8 @@
         const [computerMessage, setComputerMessage] = React.useState(null);
 
         const [placementIndex, setPlacementIndex] = React.useState(0);
-        const [placementOrientation, setPlacementOrientation] = React.useState('horizontal');
+        const [placementOrientation, setPlacementOrientation] =
+          React.useState("horizontal");
         const [hoverCell, setHoverCell] = React.useState(null);
 
         const [soundEnabled, setSoundEnabled] = React.useState(true);
@@ -249,7 +297,9 @@
         const audioCtxRef = React.useRef(null);
         React.useEffect(() => {
           if (!audioCtxRef.current) {
-            audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtxRef.current = new (
+              window.AudioContext || window.webkitAudioContext
+            )();
           }
         }, []);
 
@@ -303,29 +353,43 @@
           const placedShips = [];
           const occupied = new Set();
           const isOccupied = (row, col) =>
-            occupied.has(`${row}-${col}`) || activeIslandSet.has(`${row}-${col}`);
+            occupied.has(`${row}-${col}`) ||
+            activeIslandSet.has(`${row}-${col}`);
 
           for (let shipInfo of shipsInfo) {
             let placed = false;
             let attempts = 0;
             while (!placed && attempts < 1000) {
               attempts++;
-              const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
+              const orientation =
+                Math.random() < 0.5 ? "horizontal" : "vertical";
               let startRow, startCol;
               if (orientation === "horizontal") {
                 startRow = Math.floor(Math.random() * boardSize);
-                startCol = Math.floor(Math.random() * (boardSize - shipInfo.size + 1));
+                startCol = Math.floor(
+                  Math.random() * (boardSize - shipInfo.size + 1),
+                );
               } else {
-                startRow = Math.floor(Math.random() * (boardSize - shipInfo.size + 1));
+                startRow = Math.floor(
+                  Math.random() * (boardSize - shipInfo.size + 1),
+                );
                 startCol = Math.floor(Math.random() * boardSize);
               }
 
               let positions = [];
               let valid = true;
               for (let i = 0; i < shipInfo.size; i++) {
-                const row = orientation === "horizontal" ? startRow : startRow + i;
-                const col = orientation === "horizontal" ? startCol + i : startCol;
-                if (row < 0 || row >= boardSize || col < 0 || col >= boardSize || isOccupied(row, col)) {
+                const row =
+                  orientation === "horizontal" ? startRow : startRow + i;
+                const col =
+                  orientation === "horizontal" ? startCol + i : startCol;
+                if (
+                  row < 0 ||
+                  row >= boardSize ||
+                  col < 0 ||
+                  col >= boardSize ||
+                  isOccupied(row, col)
+                ) {
                   valid = false;
                   break;
                 }
@@ -333,8 +397,16 @@
               }
 
               if (valid) {
-                positions.forEach((pos) => occupied.add(`${pos.row}-${pos.col}`));
-                placedShips.push({ name: shipInfo.name, size: shipInfo.size, positions, hits: 0, destroyed: false });
+                positions.forEach((pos) =>
+                  occupied.add(`${pos.row}-${pos.col}`),
+                );
+                placedShips.push({
+                  name: shipInfo.name,
+                  size: shipInfo.size,
+                  positions,
+                  hits: 0,
+                  destroyed: false,
+                });
                 placed = true;
               }
             }
@@ -343,8 +415,16 @@
         }
 
         const newGame = () => {
-          const pIslands = new Set(generateIslandPositions(boardSize, numIslands).map(p => `${p.row}-${p.col}`));
-          const cIslands = new Set(generateIslandPositions(boardSize, numIslands).map(p => `${p.row}-${p.col}`));
+          const pIslands = new Set(
+            generateIslandPositions(boardSize, numIslands).map(
+              (p) => `${p.row}-${p.col}`,
+            ),
+          );
+          const cIslands = new Set(
+            generateIslandPositions(boardSize, numIslands).map(
+              (p) => `${p.row}-${p.col}`,
+            ),
+          );
 
           setPlayerIslands(pIslands);
           setComputerIslands(cIslands);
@@ -354,12 +434,12 @@
           setPlayerShots({});
           setComputerShots({});
           setPlacementIndex(0);
-          setPlacementOrientation('horizontal');
+          setPlacementOrientation("horizontal");
           setSelectedCell(null);
           setComputerMessage(null);
-          setTurn('player');
+          setTurn("player");
           setHoverCell(null);
-          setPhase('placement');
+          setPhase("placement");
         };
 
         // PLACEMENT LOGIC
@@ -375,20 +455,36 @@
 
         const isPlacementValid = (positions) => {
           for (const pos of positions) {
-            if (pos.row < 0 || pos.row >= boardSize || pos.col < 0 || pos.col >= boardSize) return false;
+            if (
+              pos.row < 0 ||
+              pos.row >= boardSize ||
+              pos.col < 0 ||
+              pos.col >= boardSize
+            )
+              return false;
             const key = `${pos.row}-${pos.col}`;
             if (playerIslands.has(key)) return false;
             for (const ship of playerShips) {
-              if (ship.positions.some(p => p.row === pos.row && p.col === pos.col)) return false;
+              if (
+                ship.positions.some(
+                  (p) => p.row === pos.row && p.col === pos.col,
+                )
+              )
+                return false;
             }
           }
           return true;
         };
 
         const handlePlacementClick = (row, col) => {
-          if (phase !== 'placement') return;
+          if (phase !== "placement") return;
           const currentShipInfo = shipsInfo[placementIndex];
-          const positions = getPlacementPositions(row, col, currentShipInfo.size, placementOrientation);
+          const positions = getPlacementPositions(
+            row,
+            col,
+            currentShipInfo.size,
+            placementOrientation,
+          );
 
           if (isPlacementValid(positions)) {
             const newShip = {
@@ -396,7 +492,7 @@
               size: currentShipInfo.size,
               positions,
               hits: 0,
-              destroyed: false
+              destroyed: false,
             };
             const newShips = [...playerShips, newShip];
             setPlayerShips(newShips);
@@ -404,31 +500,43 @@
             if (placementIndex + 1 < shipsInfo.length) {
               setPlacementIndex(placementIndex + 1);
             } else {
-              setPhase('battle');
+              setPhase("battle");
             }
           }
         };
 
         const getPreviewCells = () => {
-          if (phase !== 'placement' || !hoverCell) return { valid: false, positions: [] };
+          if (phase !== "placement" || !hoverCell)
+            return { valid: false, positions: [] };
           const currentShipInfo = shipsInfo[placementIndex];
-          const positions = getPlacementPositions(hoverCell.row, hoverCell.col, currentShipInfo.size, placementOrientation);
+          const positions = getPlacementPositions(
+            hoverCell.row,
+            hoverCell.col,
+            currentShipInfo.size,
+            placementOrientation,
+          );
           return {
             valid: isPlacementValid(positions),
-            positions
+            positions,
           };
         };
 
         const previewData = getPreviewCells();
-        const previewKeys = new Set(previewData.positions.map(p => `${p.row}-${p.col}`));
+        const previewKeys = new Set(
+          previewData.positions.map((p) => `${p.row}-${p.col}`),
+        );
 
         // BATTLE LOGIC
         const handlePlayerShotClick = (row, col) => {
-          if (phase !== 'battle' || turn !== 'player') return;
+          if (phase !== "battle" || turn !== "player") return;
           const key = `${row}-${col}`;
           if (playerShots[key] || computerIslands.has(key)) return;
 
-          if (selectedCell && selectedCell.row === row && selectedCell.col === col) {
+          if (
+            selectedCell &&
+            selectedCell.row === row &&
+            selectedCell.col === col
+          ) {
             executePlayerShot(row, col);
           } else {
             setSelectedCell({ row, col });
@@ -439,11 +547,17 @@
           const key = `${row}-${col}`;
           let hit = false;
           const updatedShips = computerShips.map((ship) => {
-            const hitIndex = ship.positions.findIndex((pos) => pos.row === row && pos.col === col);
+            const hitIndex = ship.positions.findIndex(
+              (pos) => pos.row === row && pos.col === col,
+            );
             if (hitIndex !== -1) {
               hit = true;
               const newHits = ship.hits + 1;
-              return { ...ship, hits: newHits, destroyed: newHits === ship.size };
+              return {
+                ...ship,
+                hits: newHits,
+                destroyed: newHits === ship.size,
+              };
             }
             return ship;
           });
@@ -457,9 +571,9 @@
           else playSound("miss");
 
           if (updatedShips.every((ship) => ship.destroyed)) {
-            setPhase('gameOver');
+            setPhase("gameOver");
           } else {
-            setTurn('computer');
+            setTurn("computer");
             setTimeout(executeComputerTurn, 1000);
           }
         };
@@ -481,17 +595,121 @@
 
             if (validTargets.length === 0) return;
 
-            // Simple random AI for now
-            const target = validTargets[Math.floor(Math.random() * validTargets.length)];
+            let target = null;
+
+            // Älykkäämpi tekoäly: etsi vahingoittunut, mutta ei tuhottu laiva
+            const damagedShip = playerShips.find(
+              (s) => s.hits > 0 && !s.destroyed,
+            );
+
+            if (damagedShip) {
+              const hitPositions = damagedShip.positions.filter(
+                (pos) => computerShots[`${pos.row}-${pos.col}`] === "hit",
+              );
+              const potentialTargets = [];
+
+              if (hitPositions.length === 1) {
+                const p = hitPositions[0];
+                const dirs = [
+                  [-1, 0],
+                  [1, 0],
+                  [0, -1],
+                  [0, 1],
+                ];
+                for (const [dr, dc] of dirs) {
+                  const r = p.row + dr;
+                  const c = p.col + dc;
+                  const k = `${r}-${c}`;
+                  if (
+                    r >= 0 &&
+                    r < boardSize &&
+                    c >= 0 &&
+                    c < boardSize &&
+                    !playerIslands.has(k) &&
+                    !computerShots[k]
+                  ) {
+                    potentialTargets.push({ row: r, col: c });
+                  }
+                }
+              } else if (hitPositions.length > 1) {
+                hitPositions.sort((a, b) =>
+                  a.row !== b.row ? a.row - b.row : a.col - b.col,
+                );
+                const isHorizontal =
+                  hitPositions[0].row === hitPositions[1].row;
+
+                if (isHorizontal) {
+                  const row = hitPositions[0].row;
+                  const minCol = hitPositions[0].col;
+                  const maxCol = hitPositions[hitPositions.length - 1].col;
+
+                  const leftKey = `${row}-${minCol - 1}`;
+                  if (
+                    minCol - 1 >= 0 &&
+                    !playerIslands.has(leftKey) &&
+                    !computerShots[leftKey]
+                  ) {
+                    potentialTargets.push({ row: row, col: minCol - 1 });
+                  }
+                  const rightKey = `${row}-${maxCol + 1}`;
+                  if (
+                    maxCol + 1 < boardSize &&
+                    !playerIslands.has(rightKey) &&
+                    !computerShots[rightKey]
+                  ) {
+                    potentialTargets.push({ row: row, col: maxCol + 1 });
+                  }
+                } else {
+                  const col = hitPositions[0].col;
+                  const minRow = hitPositions[0].row;
+                  const maxRow = hitPositions[hitPositions.length - 1].row;
+
+                  const topKey = `${minRow - 1}-${col}`;
+                  if (
+                    minRow - 1 >= 0 &&
+                    !playerIslands.has(topKey) &&
+                    !computerShots[topKey]
+                  ) {
+                    potentialTargets.push({ row: minRow - 1, col: col });
+                  }
+                  const bottomKey = `${maxRow + 1}-${col}`;
+                  if (
+                    maxRow + 1 < boardSize &&
+                    !playerIslands.has(bottomKey) &&
+                    !computerShots[bottomKey]
+                  ) {
+                    potentialTargets.push({ row: maxRow + 1, col: col });
+                  }
+                }
+              }
+
+              if (potentialTargets.length > 0) {
+                target =
+                  potentialTargets[
+                    Math.floor(Math.random() * potentialTargets.length)
+                  ];
+              }
+            }
+
+            if (!target) {
+              target =
+                validTargets[Math.floor(Math.random() * validTargets.length)];
+            }
             const key = `${target.row}-${target.col}`;
 
             let hit = false;
-            const updatedShips = playerShips.map(ship => {
-              const hitIndex = ship.positions.findIndex(pos => pos.row === target.row && pos.col === target.col);
+            const updatedShips = playerShips.map((ship) => {
+              const hitIndex = ship.positions.findIndex(
+                (pos) => pos.row === target.row && pos.col === target.col,
+              );
               if (hitIndex !== -1) {
                 hit = true;
                 const newHits = ship.hits + 1;
-                return { ...ship, hits: newHits, destroyed: newHits === ship.size };
+                return {
+                  ...ship,
+                  hits: newHits,
+                  destroyed: newHits === ship.size,
+                };
               }
               return ship;
             });
@@ -499,16 +717,21 @@
             if (hit) playSound("hit");
             else playSound("miss");
 
-            setComputerShots(prev => ({ ...prev, [key]: hit ? "hit" : "miss" }));
+            setComputerShots((prev) => ({
+              ...prev,
+              [key]: hit ? "hit" : "miss",
+            }));
 
             const latStr = formatCoordinate(baseLat + target.row * cellDegrees);
             const lonStr = formatCoordinate(baseLon + target.col * cellDegrees);
-            setComputerMessage(`Tietokone ampui: ${latStr}, ${lonStr} - ${hit ? "OSUMA!" : "OHI"}`);
+            setComputerMessage(
+              `Tietokone ampui: ${latStr}, ${lonStr} - ${hit ? "OSUMA!" : "OHI"}`,
+            );
 
             if (updatedShips.every((ship) => ship.destroyed)) {
-              setPhase('gameOver');
+              setPhase("gameOver");
             } else {
-              setTurn('player');
+              setTurn("player");
             }
 
             setPlayerShips(updatedShips);
@@ -524,7 +747,8 @@
           const hasShipFunc = (r, c) => {
             if (!isPlayerBoard) return false;
             for (const ship of ships) {
-              if (ship.positions.some(p => p.row === r && p.col === c)) return true;
+              if (ship.positions.some((p) => p.row === r && p.col === c))
+                return true;
             }
             return false;
           };
@@ -533,16 +757,16 @@
             <div
               className="game-grid-container"
               style={{
-                borderRadius: '8px',
-                overflow: 'hidden',
-                border: '2px solid #1c3460',
-                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.18)',
+                borderRadius: "8px",
+                overflow: "hidden",
+                border: "2px solid #1c3460",
+                boxShadow: "inset 0 2px 10px rgba(0,0,0,0.18)",
               }}
               onMouseLeave={() => setHoverCell(null)}
             >
               <div
                 className="grid grid-cols-10"
-                style={{ gap: '1px', background: '#1c3460' }}
+                style={{ gap: "1px", background: "#1c3460" }}
               >
                 {Array.from({ length: boardSize }).map((_, row) =>
                   Array.from({ length: boardSize }).map((_, col) => {
@@ -552,11 +776,19 @@
                     const hasShip = hasShipFunc(row, col);
 
                     let previewStatus = null;
-                    if (isPlayerBoard && phase === 'placement' && previewKeys.has(key)) {
+                    if (
+                      isPlayerBoard &&
+                      phase === "placement" &&
+                      previewKeys.has(key)
+                    ) {
                       previewStatus = previewData.valid ? "valid" : "invalid";
                     }
 
-                    const isSelected = !isPlayerBoard && selectedCell && selectedCell.row === row && selectedCell.col === col;
+                    const isSelected =
+                      !isPlayerBoard &&
+                      selectedCell &&
+                      selectedCell.row === row &&
+                      selectedCell.col === col;
 
                     return (
                       <GameCell
@@ -567,58 +799,68 @@
                         hasShip={hasShip}
                         previewStatus={previewStatus}
                         onClick={() => {
-                          if (isPlayerBoard && phase === 'placement') {
+                          if (isPlayerBoard && phase === "placement") {
                             handlePlacementClick(row, col);
-                          } else if (!isPlayerBoard && phase === 'battle') {
+                          } else if (!isPlayerBoard && phase === "battle") {
                             handlePlayerShotClick(row, col);
                           }
                         }}
                         onMouseEnter={() => {
-                          if (isPlayerBoard && phase === 'placement') {
+                          if (isPlayerBoard && phase === "placement") {
                             setHoverCell({ row, col });
                           }
                         }}
                       />
                     );
-                  })
+                  }),
                 )}
               </div>
             </div>
           );
         };
 
-        const isPlayerWinner = computerShips.length > 0 && computerShips.every(s => s.destroyed);
-        const isComputerWinner = playerShips.length > 0 && playerShips.every(s => s.destroyed);
+        const isPlayerWinner =
+          computerShips.length > 0 && computerShips.every((s) => s.destroyed);
+        const isComputerWinner =
+          playerShips.length > 0 && playerShips.every((s) => s.destroyed);
 
         return (
           <div className="min-h-screen relative pb-4">
-
-            {phase === 'gameOver' && (
+            {phase === "gameOver" && (
               <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl">
                   <div className="text-5xl mb-3">🎉</div>
-                  <h2 className="text-2xl font-bold mb-2 text-[#253764]">Peli ohi!</h2>
+                  <h2 className="text-2xl font-bold mb-2 text-[#253764]">
+                    Peli ohi!
+                  </h2>
                   <p className="text-[#253764] mb-4">
                     {isPlayerWinner ? "Voitit pelin!" : "Tietokone voitti!"}
                   </p>
-                  <Button onClick={newGame} className="w-full">Uusi peli</Button>
+                  <Button onClick={newGame} className="w-full">
+                    Uusi peli
+                  </Button>
                 </div>
               </div>
             )}
 
             <div
               className="p-3 sm:p-4 text-center"
-              style={{ background: 'linear-gradient(135deg, #1a3a5c 0%, #253764 70%, #1f4d8a)' }}
+              style={{
+                background:
+                  "linear-gradient(135deg, #1a3a5c 0%, #253764 70%, #1f4d8a)",
+              }}
             >
               <h1 className="text-lg sm:text-2xl font-bold text-white">
                 ⚓ Laivanupotus koordinaateilla
               </h1>
-              {phase === 'battle' && (
+              {phase === "battle" && (
                 <p className="mt-1 text-blue-200 text-xs">
-                  {turn === 'player' ? "Sinun vuorosi: Valitse ruutu tietokoneen kartalta" : "Tietokoneen vuoro..."}
+                  {turn === "player"
+                    ? "Sinun vuorosi: Valitse ruutu tietokoneen kartalta"
+                    : "Tietokoneen vuoro..."}
                 </p>
               )}
-              {phase === 'placement' && (
+              {phase === "placement" && (
                 <p className="mt-1 text-blue-200 text-xs">
                   Sijoita laivasi kartalle
                 </p>
@@ -626,39 +868,55 @@
             </div>
 
             <Card className="m-2 sm:m-4 p-2 sm:p-4 max-w-4xl mx-auto">
-              {phase === 'start' && (
+              {phase === "start" && (
                 <div className="py-8 px-4 text-center text-[#253764]">
                   <div className="text-5xl mb-4">⚓</div>
                   <p className="mb-4 text-sm max-w-md mx-auto">
-                    Kisaa tietokonetta vastaan! Aseta ensin omat laivasi ja yritä sitten upottaa tietokoneen laivat koordinaattien avulla. Tutustu koordinaatteihin{" "}
-                    <a href="https://fi.scoutwiki.org/Koordinaatit" target="_blank" className="underline font-bold">
+                    Kisaa tietokonetta vastaan! Aseta ensin omat laivasi ja
+                    yritä sitten upottaa tietokoneen laivat koordinaattien
+                    avulla. Tutustu koordinaatteihin{" "}
+                    <a
+                      href="https://fi.scoutwiki.org/Koordinaatit"
+                      target="_blank"
+                      className="underline font-bold"
+                    >
                       PartioWikissä
-                    </a>.
+                    </a>
+                    .
                   </p>
                   <Button onClick={newGame}>Aloita peli</Button>
                 </div>
               )}
 
-              {phase === 'placement' && (
+              {phase === "placement" && (
                 <div className="flex flex-col items-center">
                   <div className="mb-4 text-center">
-                    <h2 className="font-bold text-[#253764] mb-2">Sijoita laivat</h2>
+                    <h2 className="font-bold text-[#253764] mb-2">
+                      Sijoita laivat
+                    </h2>
                     <p className="text-sm text-gray-600 mb-2">
-                      Aseta: <strong>{shipsInfo[placementIndex].name}</strong> (Koko: {shipsInfo[placementIndex].size})
+                      Aseta: <strong>{shipsInfo[placementIndex].name}</strong>{" "}
+                      (Koko: {shipsInfo[placementIndex].size})
                     </p>
                     <Button
-                      onClick={() => setPlacementOrientation(prev => prev === 'horizontal' ? 'vertical' : 'horizontal')}
+                      onClick={() =>
+                        setPlacementOrientation((prev) =>
+                          prev === "horizontal" ? "vertical" : "horizontal",
+                        )
+                      }
                     >
-                      Käännä ({placementOrientation === 'horizontal' ? 'Vaaka' : 'Pysty'})
+                      Käännä (
+                      {placementOrientation === "horizontal"
+                        ? "Vaaka"
+                        : "Pysty"}
+                      )
                     </Button>
                   </div>
-                  <div className="w-full max-w-[400px]">
-                    {renderGrid(true)}
-                  </div>
+                  <div className="w-full max-w-[400px]">{renderGrid(true)}</div>
                 </div>
               )}
 
-              {phase === 'battle' && (
+              {phase === "battle" && (
                 <div>
                   {computerMessage && (
                     <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-2 mb-4 text-sm font-semibold text-center rounded">
@@ -669,15 +927,31 @@
                   <div className="boards-container">
                     {/* Player Board */}
                     <div className="board-wrapper">
-                      <h3 className="text-center font-bold text-[#253764] mb-2">Oma karttasi</h3>
+                      <h3 className="text-center font-bold text-[#253764] mb-2">
+                        Oma karttasi
+                      </h3>
                       {renderGrid(true)}
                       <div className="mt-2">
-                        <h4 className="font-bold text-xs uppercase text-gray-400">Omat laivat</h4>
+                        <h4 className="font-bold text-xs uppercase text-gray-400">
+                          Omat laivat
+                        </h4>
                         <ul className="space-y-0.5 text-[#253764]">
                           {playerShips.map((ship, index) => (
-                            <li key={index} className={`text-xs flex items-center gap-1 ${ship.destroyed ? "text-gray-400" : ""}`}>
+                            <li
+                              key={index}
+                              className={`text-xs flex items-center gap-1 ${ship.destroyed ? "text-gray-400" : ""}`}
+                            >
                               <span>{ship.destroyed ? "💥" : "🚢"}</span>
-                              <span className={ship.destroyed ? "line-through" : ""}>{ship.name}</span>
+                              <span
+                                className={ship.destroyed ? "line-through" : ""}
+                              >
+                                {ship.name}
+                              </span>
+                              <span className="text-gray-400 ml-1">
+                                {ship.destroyed
+                                  ? "Tuhottu"
+                                  : `${ship.hits}/${ship.size}`}
+                              </span>
                             </li>
                           ))}
                         </ul>
@@ -686,19 +960,31 @@
 
                     {/* Computer Board */}
                     <div className="board-wrapper">
-                      <h3 className="text-center font-bold text-[#253764] mb-2">Tietokoneen kartta</h3>
+                      <h3 className="text-center font-bold text-[#253764] mb-2">
+                        Tietokoneen kartta
+                      </h3>
                       {renderGrid(false)}
                       <div className="mt-2 text-center min-h-[40px] flex flex-col items-center justify-center">
                         {selectedCell ? (
                           <>
                             <span className="text-[#253764] font-mono text-sm font-semibold">
-                              📍 {formatCoordinate(baseLat + selectedCell.row * cellDegrees)},{" "}
-                              {formatCoordinate(baseLon + selectedCell.col * cellDegrees)}
+                              📍{" "}
+                              {formatCoordinate(
+                                baseLat + selectedCell.row * cellDegrees,
+                              )}
+                              ,{" "}
+                              {formatCoordinate(
+                                baseLon + selectedCell.col * cellDegrees,
+                              )}
                             </span>
-                            <span className="text-xs text-blue-500 mt-0.5">klikkaa uudelleen ampuaksesi</span>
+                            <span className="text-xs text-blue-500 mt-0.5">
+                              klikkaa uudelleen ampuaksesi
+                            </span>
                           </>
                         ) : (
-                          <span className="text-gray-400 text-xs">Valitse ruutu tietokoneen kartalta</span>
+                          <span className="text-gray-400 text-xs">
+                            Valitse ruutu tietokoneen kartalta
+                          </span>
                         )}
                       </div>
                       <div className="mt-2 flex justify-between items-start text-[#253764]">
@@ -708,11 +994,22 @@
                           </h4>
                           <ul className="space-y-0.5">
                             {computerShips.map((ship, index) => (
-                              <li key={index} className={`text-xs flex items-center gap-1 ${ship.destroyed ? "text-gray-400" : ""}`}>
+                              <li
+                                key={index}
+                                className={`text-xs flex items-center gap-1 ${ship.destroyed ? "text-gray-400" : ""}`}
+                              >
                                 <span>{ship.destroyed ? "💥" : "🚢"}</span>
-                                <span className={ship.destroyed ? "line-through" : ""}>{ship.name}</span>
+                                <span
+                                  className={
+                                    ship.destroyed ? "line-through" : ""
+                                  }
+                                >
+                                  {ship.name}
+                                </span>
                                 <span className="text-gray-400 ml-1">
-                                  {ship.destroyed ? "Tuhottu" : `${ship.hits}/${ship.size}`}
+                                  {ship.destroyed
+                                    ? "Tuhottu"
+                                    : `${ship.hits}/${ship.size}`}
                                 </span>
                               </li>
                             ))}
@@ -723,8 +1020,13 @@
                   </div>
 
                   <div className="mt-6 flex justify-center gap-4">
-                    <Button onClick={newGame} title="Uusi peli">🔄 Uusi peli</Button>
-                    <Button onClick={() => setSoundEnabled(!soundEnabled)} title="Äänet">
+                    <Button onClick={newGame} title="Uusi peli">
+                      🔄 Uusi peli
+                    </Button>
+                    <Button
+                      onClick={() => setSoundEnabled(!soundEnabled)}
+                      title="Äänet"
+                    >
                       {soundEnabled ? "🔊 Äänet päällä" : "🔈 Äänet pois"}
                     </Button>
                   </div>
