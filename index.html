@@ -216,15 +216,53 @@
           }
         }, []);
 
-        function playSound(frequency, duration) {
+        function playSound(type) {
           if (!soundEnabled) return;
-          const audioCtx = audioCtxRef.current;
-          const oscillator = audioCtx.createOscillator();
-          oscillator.type = "square";
-          oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-          oscillator.connect(audioCtx.destination);
-          oscillator.start();
-          oscillator.stop(audioCtx.currentTime + duration);
+          const ctx = audioCtxRef.current;
+          const now = ctx.currentTime;
+
+          if (type === "hit") {
+            // Low boom that descends — impact feel
+            const g1 = ctx.createGain();
+            g1.connect(ctx.destination);
+            g1.gain.setValueAtTime(0, now);
+            g1.gain.linearRampToValueAtTime(0.55, now + 0.012);
+            g1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            const o1 = ctx.createOscillator();
+            o1.type = "sine";
+            o1.frequency.setValueAtTime(200, now);
+            o1.frequency.exponentialRampToValueAtTime(42, now + 0.42);
+            o1.connect(g1);
+            o1.start(now);
+            o1.stop(now + 0.5);
+
+            // Sharp crack on top
+            const g2 = ctx.createGain();
+            g2.connect(ctx.destination);
+            g2.gain.setValueAtTime(0.28, now);
+            g2.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            const o2 = ctx.createOscillator();
+            o2.type = "sawtooth";
+            o2.frequency.setValueAtTime(880, now);
+            o2.frequency.exponentialRampToValueAtTime(380, now + 0.14);
+            o2.connect(g2);
+            o2.start(now);
+            o2.stop(now + 0.16);
+          } else {
+            // Water plop — descending sine
+            const g = ctx.createGain();
+            g.connect(ctx.destination);
+            g.gain.setValueAtTime(0, now);
+            g.gain.linearRampToValueAtTime(0.32, now + 0.018);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+            const o = ctx.createOscillator();
+            o.type = "sine";
+            o.frequency.setValueAtTime(500, now);
+            o.frequency.exponentialRampToValueAtTime(170, now + 0.38);
+            o.connect(g);
+            o.start(now);
+            o.stop(now + 0.42);
+          }
         }
 
         function generateShips(activeIslandSet) {
@@ -306,8 +344,8 @@
           const newMoveCount = moveCount + 1;
           setMoveCount(newMoveCount);
 
-          if (hit) playSound(600, 0.1);
-          else playSound(400, 0.1);
+          if (hit) playSound("hit");
+          else playSound("miss");
 
           if (updatedShips.every((ship) => ship.destroyed)) {
             setGameOver(true);
@@ -363,7 +401,7 @@
               </h1>
               {gameStarted && (
                 <p className="mt-1 text-blue-200 text-xs">
-                  Valitse ruutu — klikkaa uudelleen ammuttaaksesi
+                  Valitse ruutu — klikkaa uudelleen ampuaksesi
                 </p>
               )}
             </div>
@@ -437,7 +475,7 @@
                           📍 {formatCoordinate(baseLat + selectedCell.row * cellDegrees)},{" "}
                           {formatCoordinate(baseLon + selectedCell.col * cellDegrees)}
                         </span>
-                        <span className="text-xs text-blue-500 mt-0.5">klikkaa uudelleen ammuttaaksesi</span>
+                        <span className="text-xs text-blue-500 mt-0.5">klikkaa uudelleen ampuaksesi</span>
                       </>
                     ) : (
                       <span className="text-gray-400 text-xs">Valitse ruutu kartalta</span>
